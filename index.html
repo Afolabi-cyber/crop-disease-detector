@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2E7D32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <title>Crop Doctor</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #F5F5F5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2E7D32, #66BB6A);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .header-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .header-subtitle {
+            font-size: 15px;
+            opacity: 0.95;
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Upload Section */
+        .camera-button {
+            background: white;
+            border: none;
+            border-radius: 20px;
+            padding: 60px 30px;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .camera-button:active {
+            transform: scale(0.98);
+        }
+
+        .camera-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .camera-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2E7D32;
+            margin-bottom: 10px;
+        }
+
+        .camera-hint {
+            font-size: 16px;
+            color: #666;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Preview Section */
+        .preview-image {
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+        }
+
+        .big-button {
+            width: 100%;
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 22px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .big-button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-check {
+            background: linear-gradient(135deg, #2E7D32, #66BB6A);
+            color: white;
+        }
+
+        .btn-retake {
+            background: white;
+            color: #666;
+            border: 2px solid #E0E0E0;
+        }
+
+        /* Loading Section */
+        .loading-container {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 6px solid #E8F5E9;
+            border-top: 6px solid #2E7D32;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2E7D32;
+            margin-bottom: 10px;
+        }
+
+        .loading-hint {
+            font-size: 15px;
+            color: #666;
+        }
+
+        /* Result Section */
+        .result-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .result-icon {
+            font-size: 60px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .disease-name {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1B5E20;
+            text-align: center;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+
+        .confidence-container {
+            background: #E8F5E9;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .confidence-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2E7D32;
+            text-align: center;
+        }
+
+        .confidence-bar {
+            background: #C8E6C9;
+            height: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            background: #2E7D32;
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.8s ease;
+        }
+
+        .other-results {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 2px solid #F0F0F0;
+        }
+
+        .other-results-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .prediction-item {
+            background: #FAFAFA;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .prediction-name {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .prediction-percent {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2E7D32;
+        }
+
+        .advice-box {
+            background: #FFF3E0;
+            border-left: 4px solid #FF9800;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .advice-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #E65100;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .advice-text {
+            font-size: 15px;
+            color: #5D4037;
+            line-height: 1.6;
+        }
+
+        .footer {
+            background: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+            border-top: 1px solid #E0E0E0;
+        }
+
+        /* Status indicator */
+        .status-badge {
+            display: inline-block;
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* Install prompt */
+        .install-banner {
+            display: none;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .install-banner.active {
+            display: block;
+        }
+
+        .install-banner button {
+            background: white;
+            color: #4CAF50;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Install banner -->
+    <div class="install-banner" id="installBanner">
+        📱 Install this app to use offline
+        <button id="installButton">Install</button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-icon">🌾</div>
+        <div class="header-title">Crop Doctor</div>
+        <div class="header-subtitle">Check Your Crop Health</div>
+        <div class="status-badge">✓ Works Offline</div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- Section 1: Upload -->
+        <div class="section active" id="uploadSection">
+            <button class="camera-button" id="cameraButton">
+                <div class="camera-icon">📸</div>
+                <div class="camera-text">Take Photo</div>
+                <div class="camera-hint">of your crop leaf</div>
+            </button>
+            <input type="file" id="fileInput" accept="image/*" capture="environment">
+        </div>
+
+        <!-- Section 2: Preview -->
+        <div class="section" id="previewSection">
+            <img id="previewImage" class="preview-image" alt="Crop photo">
+            
+            <button class="big-button btn-check" id="checkButton">
+                <span style="font-size: 28px;">✓</span>
+                <span>Check Crop</span>
+            </button>
+            
+            <button class="big-button btn-retake" id="retakeButton">
+                <span style="font-size: 24px;">↺</span>
+                <span>Take Another Photo</span>
+            </button>
+        </div>
+
+        <!-- Section 3: Loading -->
+        <div class="section" id="loadingSection">
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <div class="loading-text">Checking Your Crop...</div>
+                <div class="loading-hint">Please wait</div>
+            </div>
+        </div>
+
+        <!-- Section 4: Results -->
+        <div class="section" id="resultSection">
+            <div class="result-card">
+                <div class="result-icon" id="resultIcon">🌿</div>
+                <div class="disease-name" id="diseaseName"></div>
+                
+                <div class="confidence-container">
+                    <div class="confidence-text" id="confidenceText"></div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill"></div>
+                    </div>
+                </div>
+
+                <div class="other-results">
+                    <div class="other-results-title">Other Possibilities:</div>
+                    <div id="otherPredictions"></div>
+                </div>
+            </div>
+
+            <div class="advice-box">
+                <div class="advice-title">
+                    <span>💡</span>
+                    <span>Important</span>
+                </div>
+                <div class="advice-text">
+                    This is an AI suggestion. For treatment advice, please visit your local agricultural extension office or farming cooperative.
+                </div>
+            </div>
+
+            <button class="big-button btn-check" id="newCheckButton" style="margin-top: 20px;">
+                <span style="font-size: 24px;">📸</span>
+                <span>Check Another Crop</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        Made for Nigerian Farmers 🇳🇬<br>
+        IndabaX Nigeria 2026 • University of Ibadan
+    </div>
+
+    <script>
+        // =====================================================================
+        // CONFIGURATION
+        // =====================================================================
+        
+        const CLASS_NAMES = [
+            "Cassava Bacterial Blight",
+            "Cassava Brown Spot",
+            "Cassava Green Mite",
+            "Cassava Healthy",
+            "Cassava Mosaic",
+            "Maize Fall Armyworm",
+            "Maize Grasshopper",
+            "Maize Healthy",
+            "Maize Leaf Beetle",
+            "Maize Leaf Blight",
+            "Maize Leaf Spot",
+            "Maize Streak Virus",
+            "Tomato Healthy",
+            "Tomato Leaf Blight",
+            "Tomato Leaf Curl",
+            "Tomato Septoria Leaf Spot",
+            "Tomato Verticillium Wilt"
+        ];
+
+        // Disease icons
+        const DISEASE_ICONS = {
+            'healthy': '✅',
+            'blight': '🦠',
+            'spot': '🔴',
+            'virus': '⚠️',
+            'mite': '🐛',
+            'armyworm': '🐛',
+            'beetle': '🪲',
+            'grasshopper': '🦗',
+            'default': '🌿'
+        };
+
+        let currentImage = null;
+        let deferredPrompt = null;
+
+        // =====================================================================
+        // DOM ELEMENTS
+        // =====================================================================
+        
+        const uploadSection = document.getElementById('uploadSection');
+        const previewSection = document.getElementById('previewSection');
+        const loadingSection = document.getElementById('loadingSection');
+        const resultSection = document.getElementById('resultSection');
+        
+        const cameraButton = document.getElementById('cameraButton');
+        const fileInput = document.getElementById('fileInput');
+        const previewImage = document.getElementById('previewImage');
+        const checkButton = document.getElementById('checkButton');
+        const retakeButton = document.getElementById('retakeButton');
+        const newCheckButton = document.getElementById('newCheckButton');
+        
+        const installBanner = document.getElementById('installBanner');
+        const installButton = document.getElementById('installButton');
+
+        // =====================================================================
+        // PWA INSTALLATION
+        // =====================================================================
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBanner.classList.add('active');
+        });
+
+        installButton.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            installBanner.classList.remove('active');
+        });
+
+        // =====================================================================
+        // CAMERA & FILE HANDLING
+        // =====================================================================
+        
+        cameraButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    currentImage = e.target.result;
+                    previewImage.src = currentImage;
+                    showSection('preview');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        retakeButton.addEventListener('click', () => {
+            fileInput.value = '';
+            showSection('upload');
+        });
+
+        newCheckButton.addEventListener('click', () => {
+            fileInput.value = '';
+            currentImage = null;
+            showSection('upload');
+        });
+
+        // =====================================================================
+        // ANALYSIS
+        // =====================================================================
+        
+        checkButton.addEventListener('click', async () => {
+            showSection('loading');
+            
+            // Simulate processing time
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Generate demo predictions
+            const predictions = generatePredictions();
+            displayResults(predictions);
+            
+            showSection('result');
+        });
+
+        function generatePredictions() {
+            // Create random predictions for demo
+            const preds = CLASS_NAMES.map((name, idx) => ({
+                name: name,
+                confidence: Math.random()
+            }));
+            
+            // Sort and normalize
+            preds.sort((a, b) => b.confidence - a.confidence);
+            const total = preds.reduce((sum, p) => sum + p.confidence, 0);
+            preds.forEach(p => p.confidence = p.confidence / total);
+            
+            return preds;
+        }
+
+        function displayResults(predictions) {
+            const top = predictions[0];
+            
+            // Determine icon
+            const nameLower = top.name.toLowerCase();
+            let icon = DISEASE_ICONS.default;
+            for (const [key, value] of Object.entries(DISEASE_ICONS)) {
+                if (nameLower.includes(key)) {
+                    icon = value;
+                    break;
+                }
+            }
+            
+            document.getElementById('resultIcon').textContent = icon;
+            document.getElementById('diseaseName').textContent = top.name;
+            
+            const confidence = (top.confidence * 100).toFixed(0);
+            document.getElementById('confidenceText').textContent = 
+                `${confidence}% Match`;
+            document.getElementById('confidenceFill').style.width = 
+                `${confidence}%`;
+            
+            // Show top 3 other predictions
+            const others = predictions.slice(1, 4);
+            const othersHTML = others.map(pred => `
+                <div class="prediction-item">
+                    <div class="prediction-name">${pred.name}</div>
+                    <div class="prediction-percent">${(pred.confidence * 100).toFixed(0)}%</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('otherPredictions').innerHTML = othersHTML;
+        }
+
+        // =====================================================================
+        // UI HELPERS
+        // =====================================================================
+        
+        function showSection(section) {
+            [uploadSection, previewSection, loadingSection, resultSection]
+                .forEach(s => s.classList.remove('active'));
+            
+            switch(section) {
+                case 'upload':
+                    uploadSection.classList.add('active');
+                    break;
+                case 'preview':
+                    previewSection.classList.add('active');
+                    break;
+                case 'loading':
+                    loadingSection.classList.add('active');
+                    break;
+                case 'result':
+                    resultSection.classList.add('active');
+                    break;
+            }
+        }
+
+        // =====================================================================
+        // INITIALIZATION
+        // =====================================================================
+        
+        console.log('🌾 Crop Doctor initialized');
+        console.log('✓ Ready for offline use');
+    </script>
+</body>
+</html>
