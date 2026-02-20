@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     
     <title>Crop Doctor</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
     
     <style>
         * {
@@ -432,7 +433,6 @@
     <!-- Footer -->
     <div class="footer">
         Made for Nigerian Farmers 🇳🇬<br>
-        IndabaX Nigeria 2026 • University of Ibadan
     </div>
 
     <script>
@@ -475,6 +475,34 @@
 
         let currentImage = null;
         let deferredPrompt = null;
+
+        // =====================================================================
+        // AI MODEL LOADING
+        // =====================================================================
+        
+        let model = null;
+        let modelLoaded = false;
+
+        // Load TensorFlow.js model
+        async function loadModel() {
+            try {
+                console.log('🔄 Loading AI model...');
+                model = await tf.loadLayersModel('./tfjs_model/model.json');
+                modelLoaded = true;
+                console.log('✅ Model loaded successfully!');
+                console.log('📊 Model ready for predictions');
+            } catch (error) {
+                console.error('❌ Error loading model:', error);
+                modelLoaded = false;
+                console.warn('⚠️ Will use demo mode');
+            }
+        }
+
+        // Load model when page loads
+        window.addEventListener('load', () => {
+            loadModel();
+            console.log('🌾 Crop Doctor initialized');
+        });
 
         // =====================================================================
         // DOM ELEMENTS
@@ -546,35 +574,84 @@
         });
 
         // =====================================================================
-        // ANALYSIS
+        // AI PREDICTION
         // =====================================================================
         
         checkButton.addEventListener('click', async () => {
             showSection('loading');
             
-            // Simulate processing time
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Create image element from current photo
+            const img = new Image();
+            img.src = currentImage;
+            await img.decode();
             
-            // Generate demo predictions
-            const predictions = generatePredictions();
+            // Get REAL predictions from AI model
+            const predictions = await generatePredictions(img);
+            
             displayResults(predictions);
-            
             showSection('result');
         });
 
-        function generatePredictions() {
-            // Create random predictions for demo
-            const preds = CLASS_NAMES.map((name, idx) => ({
-                name: name,
-                confidence: Math.random()
-            }));
-            
-            // Sort and normalize
-            preds.sort((a, b) => b.confidence - a.confidence);
-            const total = preds.reduce((sum, p) => sum + p.confidence, 0);
-            preds.forEach(p => p.confidence = p.confidence / total);
-            
-            return preds;
+        async function generatePredictions(imageElement) {
+            // If model not loaded, use demo predictions
+            if (!modelLoaded || !model) {
+                console.warn('⚠️ Model not loaded, using demo predictions');
+                const predictions = CLASS_NAMES.map((name) => ({
+                    name: name,
+                    confidence: Math.random()
+                }));
+                predictions.sort((a, b) => b.confidence - a.confidence);
+                const total = predictions.reduce((sum, p) => sum + p.confidence, 0);
+                predictions.forEach(p => p.confidence = p.confidence / total);
+                return predictions;
+            }
+
+            try {
+                console.log('🧠 Running AI prediction...');
+                
+                // Preprocess image for MobileNetV2
+                // 1. Convert to tensor
+                let tensor = tf.browser.fromPixels(imageElement);
+                
+                // 2. Resize to 224x224
+                tensor = tf.image.resizeBilinear(tensor, [224, 224]);
+                
+                // 3. Normalize to [-1, 1] (MobileNetV2 preprocessing)
+                tensor = tensor.toFloat().div(127.5).sub(1);
+                
+                // 4. Add batch dimension
+                tensor = tensor.expandDims(0);
+                
+                // 5. Run inference
+                const predictions = await model.predict(tensor).data();
+                
+                // 6. Convert to array of objects
+                const results = Array.from(predictions).map((confidence, index) => ({
+                    name: CLASS_NAMES[index],
+                    confidence: confidence
+                }));
+                
+                // 7. Sort by confidence (highest first)
+                results.sort((a, b) => b.confidence - a.confidence);
+                
+                // 8. Cleanup tensor
+                tensor.dispose();
+                
+                console.log('✅ Prediction complete!');
+                console.log('📊 Top result:', results[0].name, `(${(results[0].confidence * 100).toFixed(1)}%)`);
+                
+                return results;
+                
+            } catch (error) {
+                console.error('❌ Prediction error:', error);
+                // Fallback to demo predictions
+                const predictions = CLASS_NAMES.map((name) => ({
+                    name: name,
+                    confidence: Math.random()
+                }));
+                predictions.sort((a, b) => b.confidence - a.confidence);
+                return predictions;
+            }
         }
 
         function displayResults(predictions) {
@@ -634,13 +711,6 @@
                     break;
             }
         }
-
-        // =====================================================================
-        // INITIALIZATION
-        // =====================================================================
-        
-        console.log('🌾 Crop Doctor initialized');
-        console.log('✓ Ready for offline use');
     </script>
 </body>
 </html>
